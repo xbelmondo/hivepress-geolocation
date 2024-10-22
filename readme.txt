@@ -8,6 +8,8 @@ Stable tag: 1.3.7
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
+**** HACK replace Mapbox with Maplibre ****
+
 Allow users to search listings by location.
 
 == Description ==
