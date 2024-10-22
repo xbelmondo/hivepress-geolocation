@@ -30,46 +30,89 @@
 					settings['types'] = container.data('types').join(',');
 				}
 
-				// Create Geocoder
-				var geocoder = new MapboxGeocoder(settings);
+                // Initialize ajax autocomplete:
+                
+                container.find('input').autocomplete({
+                    delay: 500,
+                    minLength: 3,
+                    source: function(request, response) { 
+                        $.ajax({
+                            method: "GET",
+                            dataType: "json",
+                            url: "https://nominatim.openstreetmap.org/search?q="+request.term+"&format=geojson&polygon_geojson=0&addressdetails=1&countrycodes="+settings['countries'],
+                            success: function (data) {
+                                var transformed = data.features.map(function(currentValue, index, arr) { 
+                                    return {
+                                        label: currentValue.properties.display_name,
+                                        value: currentValue.properties.name,
+                                        place: currentValue.properties.address.town,
+                                        district: currentValue.properties.address.county,
+                                        country: currentValue.properties.address.country,
+                                        region: currentValue.properties.address['ISO3166-2-lvl6'], 
+                                        lat:currentValue.geometry.coordinates[1],
+                                        long:currentValue.geometry.coordinates[0],
+                                    }; 
+                                }); 
+                                response(transformed);
+                            },
+                            error: function () {
+                                response([]);
+                            }
+                        });
+                    }, 
+                    select: function(event, ui) {
+                        console.log(ui);
+                        event.preventDefault();
+                        $(event.target).val(ui.item.value);
+                        var types = [
+                    		'place',
+                    		'district',
+                    		'region',
+                    		'country',
+                    	];
 
-				geocoder.addTo(container.get(0));
+                    	// Set region
+                    	if (regionField.length) {
+                    		if (ui.item.filter(value => types.includes(value)).length) {
+                    			regionField.val(ui.item.region);
+                    		} else {
+                    			regionField.val('');
+                    		}
+                    	}
 
-				// Replace field
-				var mapboxContainer = container.children('.mapboxgl-ctrl'),
-					fieldAttributes = field.prop('attributes');
+                    	// Set coordinates
+                    	longitudeField.val(ui.item.long);
+                    	latitudeField.val(ui.item.lat);
+                        console.log( 'You selected: ' 
+                                                + ui.item.value + ', ' + ui.item.label);
+                    },
+                    focus: function(event, ui) {
+                        event.preventDefault();
+                        $(event.target).val(ui.item.value);
+                    }
+                })
+                .on('keyup', function(event) {
+                    if ($(event.target).val().length == 0) $('#selection-ajax').html(''); 
+                })
+                .data('ui-autocomplete')._renderItem = function( ul, item ) {
+                    //thanks to Salman Arshad  
+                    //http://salman-w.blogspot.ca/2013/12/jquery-ui-autocomplete-examples.html#example-4
+                    var $div = $("<div></div>").text(item.label), 
+                        searchText  = $.trim(this.term).toLowerCase(), 
+                        currentNode = $div.get(0).firstChild, 
+                        matchIndex, newTextNode, newSpanNode; 
+                    while ((matchIndex = currentNode.data.toLowerCase().indexOf(searchText)) >= 0) { 
+                        newTextNode = currentNode.splitText(matchIndex); 
+                        currentNode = newTextNode.splitText(searchText.length); 
+                        newSpanNode = document.createElement("span"); 
+                        newSpanNode.className = "highlight"; 
+                        currentNode.parentNode.insertBefore(newSpanNode, currentNode); 
+                        newSpanNode.appendChild(newTextNode); 
+                    } 
 
-				field.remove();
-				field = mapboxContainer.find('input[type=text]');
-
-				$.each(fieldAttributes, function() {
-					field.attr(this.name, this.value);
-				});
-
-				mapboxContainer.detach().prependTo(container);
-
-				// Set location
-				geocoder.on('result', function(result) {
-					var types = [
-						'place',
-						'district',
-						'region',
-						'country',
-					];
-
-					// Set region
-					if (regionField.length) {
-						if (result.result.place_type.filter(value => types.includes(value)).length) {
-							regionField.val(result.result.id);
-						} else {
-							regionField.val('');
-						}
-					}
-
-					// Set coordinates
-					longitudeField.val(result.result.geometry.coordinates[0]);
-					latitudeField.val(result.result.geometry.coordinates[1]);
-				});
+                    return $("<li></li>").append($div).appendTo(ul); 
+                };
+				
 			} else {
 				settings = {
 					details: form,
@@ -137,13 +180,15 @@
 				button.on('click', function(e) {
 					navigator.geolocation.getCurrentPosition(function(position) {
 						if (typeof mapboxData !== 'undefined') {
-							geocoder.options.reverseGeocode = true;
-							geocoder.options.limit = 1;
+                            console.log(position);
+							// geocoder.options.reverseGeocode = true;
+							// geocoder.options.limit = 1;
 
-							geocoder.query(position.coords.latitude + ',' + position.coords.longitude);
+							// geocoder.query(position.coords.latitude + ',' + position.coords.longitude);
 
-							geocoder.options.reverseGeocode = false;
-							geocoder.options.limit = 5;
+							// geocoder.options.reverseGeocode = false;
+							// geocoder.options.limit = 5;
+
 						} else {
 							field.geocomplete('find', position.coords.latitude + ' ' + position.coords.longitude);
 						}
@@ -171,39 +216,68 @@
 			container.height(height);
 
 			if (typeof mapboxData !== 'undefined') {
-
-				// Set API key
-				mapboxgl.accessToken = mapboxData.apiKey;
+                console.log(container.data('markers'));
 
 				// Create map
-				var bounds = new mapboxgl.LngLatBounds(),
-					map = new mapboxgl.Map({
-						container: container.get(0),
-						style: 'mapbox://styles/mapbox/streets-v11',
-						center: [0, 0],
-						zoom: 1,
-					});
+                var bounds = new maplibregl.LngLatBounds(),
+                 map = new maplibregl.Map({
+                    container: container.get(0),
+                    style: {
+                        'version': 8,
+                        'name': 'Blank',
+                        'center': [0, 0],
+                        'zoom': 0,
+                        'sources': {
+                            'raster-tiles': {
+                                'type': 'raster',
+                                'tiles': ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                                'tileSize': 256,
+                                'minzoom': 0,
+                                'maxzoom': 19
+                            }
+                        },
+                        'layers': [
+                            {
+                                'id': 'background',
+                                'type': 'background',
+                                'paint': {
+                                    'background-color': '#e0dfdf'
+                                }
+                            },
+                            {
+                                'id': 'simple-tiles',
+                                'type': 'raster',
+                                'source': 'raster-tiles'
+                            }
+                        ],
+                        'id': 'blank'
+                    },
+                    center: [0, 0],
+                    zoom: 1,
+                    bearing: 20,
+                    antialias: true
+                });
 
-				map.addControl(new mapboxgl.NavigationControl());
-				map.addControl(new mapboxgl.FullscreenControl());
+				map.addControl(new maplibregl.NavigationControl());
+				map.addControl(new maplibregl.FullscreenControl());
 
-				// Set language
-				map.addControl(new MapboxLanguage());
+				// // Set language
+				// map.addControl(new MapboxLanguage());
 
 				// Add markers
 				$.each(container.data('markers'), function(index, data) {
 					bounds.extend([data.longitude, data.latitude]);
-
-					var marker = new mapboxgl.Marker()
+                    
+					var marker = new maplibregl.Marker()
 						.setLngLat([data.longitude, data.latitude])
-						.setPopup(new mapboxgl.Popup().setHTML(data.content))
+						.setPopup(new maplibregl.Popup().setHTML(data.content))
 						.addTo(map);
 				});
 
 				// Fit bounds
 				map.fitBounds(bounds, {
 					maxZoom: maxZoom - 1,
-					padding: 50,
+					padding: 150,
 					duration: 0,
 				});
 
@@ -212,7 +286,7 @@
 
 					map.fitBounds(bounds, {
 						maxZoom: maxZoom - 1,
-						padding: 50,
+						padding: 150,
 						duration: 0,
 					});
 				}).observe(container.get(0));

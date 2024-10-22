@@ -203,12 +203,13 @@ final class Geolocation extends Component {
 	 */
 	public function enqueue_scripts() {
 		if ( get_option( 'hp_geolocation_provider' ) === 'mapbox' ) {
-			wp_enqueue_style( 'mapbox', 'https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css' );
-			wp_enqueue_style( 'mapbox-geocoder', 'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css' );
+			wp_enqueue_style( 'mapbox', 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css' );
+			wp_enqueue_style( 'mapbox-geocoder', 'https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.5.0/dist/maplibre-gl-geocoder.css' );
+            wp_enqueue_style( 'mapbox-ui', 'https://code.jquery.com/ui/1.14.0/themes/base/jquery-ui.css' );
 
 			wp_enqueue_script(
 				'mapbox',
-				'https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js',
+				'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js',
 				[],
 				null,
 				true
@@ -216,7 +217,14 @@ final class Geolocation extends Component {
 
 			wp_enqueue_script(
 				'mapbox-geocoder',
-				'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js',
+				'https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.5.0/dist/maplibre-gl-geocoder.min.js',
+				[ 'mapbox' ],
+				null,
+				true
+			);
+            wp_enqueue_script(
+				'mapbox-ui',
+				'https://code.jquery.com/ui/1.14.0/jquery-ui.js',
 				[ 'mapbox' ],
 				null,
 				true
