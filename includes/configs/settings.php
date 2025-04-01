@@ -44,7 +44,7 @@ return [
 						'_order'      => 20,
 
 						'options'     => [
-							'mapbox' => 'Mapbox',
+							'mapbox' => 'MapLibre',
 						],
 					],
 
@@ -133,19 +133,19 @@ return [
 				],
 			],
 
-			'mapbox' => [
-				'title'  => 'Mapbox',
-				'_order' => 40,
+			// 'mapbox' => [
+			// 	'title'  => 'MapLibre',
+			// 	'_order' => 40,
 
-				'fields' => [
-					'mapbox_api_key' => [
-						'label'      => hivepress()->translator->get_string( 'api_key' ),
-						'type'       => 'text',
-						'max_length' => 256,
-						'_order'     => 10,
-					],
-				],
-			],
+			// 	'fields' => [
+			// 		'mapbox_api_key' => [
+			// 			'label'      => hivepress()->translator->get_string( 'api_key' ),
+			// 			'type'       => 'text',
+			// 			'max_length' => 256,
+			// 			'_order'     => 10,
+			// 		],
+			// 	],
+			// ],
 		],
 	],
 ];
